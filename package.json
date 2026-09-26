@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "discord.js": "^14.6.0",
+    "discord.js": "14.27.0",
     "dotenv": "^16.4.5",
     "mysql2": "^3.11.5"
   },
@@ -14,7 +14,8 @@
     "start": "node .",
     "test": "node --test",
     "dev": "nodemon .",
-    "deployCommands": "node src/deployCommands.js"
+    "deployCommands": "node src/deployCommands.js",
+    "db:migrate": "node scripts/migrate.js"
   },
   "author": "Team Pixel Punk",
   "license": "ISC",

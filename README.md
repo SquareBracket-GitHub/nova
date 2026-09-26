@@ -9,6 +9,7 @@ Nova는 `diceBot`의 주사위·운세·이모지 기능과 `gachamond`의 커�
 - `/special-dice`: 합계에 플러스 또는 마이너스 보정 적용
 - `/fortune`: 한국 시간 기준 하루 한 번 운세 확인
 - `/profile`: 사용자 활동 정보 표시
+- `/settings`: 서버 관리자 전용 언어 및 기능 설정
 - `/gacha-create`: 커스텀 가챠 생성
 - `/gacha-manage`: 가챠, 등급, 아이템 관리 및 1회/10회 가챠 공개
 - `/gacha-delete`: 가챠와 하위 데이터를 함께 삭제
@@ -48,7 +49,7 @@ DB_PW=change-me
 DB_NAME=nova_test
 ```
 
-MySQL에서 먼저 `schema.sql`을 실행합니다. 이 스키마는 Nova용 신규 스키마이며 기존 두 봇의 데이터가 자동으로 복사되지는 않습니다.
+DB 스키마는 `migrations/`의 SQL 파일로 관리됩니다. Docker Compose에서는 `migrate` 서비스가 봇보다 먼저 미적용 마이그레이션을 자동 실행합니다. Node.js로 직접 구동할 때는 `npm run db:migrate`를 먼저 실행합니다. 기존 두 봇의 데이터는 자동으로 복사되지 않습니다.
 
 Discord Developer Portal에서 **Message Content Intent**를 활성화해야 이모지 확대 기능이 동작합니다. 또한 봇에는 메시지 보기, 메시지 보내기, 임베드 링크, 메시지 기록 보기, 메시지 관리 권한이 필요합니다.
 
@@ -61,6 +62,8 @@ docker compose --env-file .env -p nova-test up -d --build
 docker compose --env-file .env -p nova-test ps
 docker compose --env-file .env -p nova-test logs -f bot
 ```
+
+`/settings`는 서버 안에서 **서버 관리(Manage Server)** 권한이 있는 사용자에게만 표시되며, 설정 화면과 조작 결과는 실행자에게만 보입니다. 서버별로 한국어/영어 응답 언어와 주사위·운세·가챠·이모지 확대 기능을 켜거나 끌 수 있습니다. `/ping`, `/profile`, `/settings`는 항상 사용할 수 있습니다.
 
 Discord 명령은 봇 컨테이너와 동일한 TEST 환경으로 명시적으로 배포합니다.
 

@@ -1,12 +1,14 @@
 const { createGrade } = require('../functions/db');
 const { UserFacingError } = require('../functions/errors');
+const { t } = require('../functions/i18n');
 
 function parsePercentage(value) {
-    if (!/^[0-9]+$/.test(value)) throw new UserFacingError('등급 확률에는 정수만 입력할 수 있습니다.');
+    if (!/^[0-9]+$/.test(value)) throw new UserFacingError('invalid_integer_percentage');
     return Number(value);
 }
 
 module.exports = {
+    feature: 'gacha',
     id: 'createGradeModal',
     hasExtraData: true,
     async execute(interaction) {
@@ -16,6 +18,6 @@ module.exports = {
             percentage: parsePercentage(interaction.fields.getTextInputValue('grade_percentage').trim()),
             color: interaction.fields.getTextInputValue('grade_color').trim().toLowerCase()
         });
-        await interaction.reply({ content: '등급을 만들었습니다.', ephemeral: true });
+        await interaction.reply({ content: t(interaction, 'grade_created'), ephemeral: true });
     }
 };

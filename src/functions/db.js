@@ -4,6 +4,8 @@ const { getDatabaseConfig } = require('./config');
 
 const MAX_COMPONENT_OPTIONS = 25;
 const ALLOWED_COLORS = new Set(['gray', 'green', 'blue', 'purple', 'yellow']);
+const SUPPORTED_LOCALES = new Set(['ko', 'en']);
+const FEATURE_KEYS = ['dice', 'fortune', 'gacha', 'emoji'];
 
 let pool;
 
@@ -33,6 +35,87 @@ async function closePool() {
     await activePool.end();
 }
 
+function defaultGuildSettings() {
+    return {
+        locale: 'ko',
+        features: Object.fromEntries(FEATURE_KEYS.map(key => [key, true]))
+    };
+}
+
+async function getGuildSettings(guildId) {
+    if (!guildId) return defaultGuildSettings();
+    const settings = defaultGuildSettings();
+    const [guildRows] = await getPool().execute(
+        'SELECT locale FROM guild_settings WHERE guild_id = ?',
+        [guildId]
+    );
+    if (!guildRows[0]) return settings;
+
+    settings.locale = guildRows[0].locale;
+    const [featureRows] = await getPool().execute(
+        'SELECT feature_key, enabled FROM guild_features WHERE guild_id = ?',
+        [guildId]
+    );
+    for (const row of featureRows) settings.features[row.feature_key] = Boolean(row.enabled);
+    return settings;
+}
+
+async function ensureGuildSettings(connection, guildId, actorId) {
+    await connection.execute(
+        `INSERT INTO guild_settings (guild_id, locale, updated_by)
+         VALUES (?, 'ko', ?) ON DUPLICATE KEY UPDATE guild_id = guild_id`,
+        [guildId, actorId]
+    );
+}
+
+async function writeSettingsAudit(connection, guildId, actorId, action, details) {
+    await connection.execute(
+        'INSERT INTO guild_settings_audit (guild_id, actor_id, action, details) VALUES (?, ?, ?, ?)',
+        [guildId, actorId, action, JSON.stringify(details)]
+    );
+}
+
+async function setGuildLocale(guildId, actorId, locale) {
+    if (!SUPPORTED_LOCALES.has(locale)) throw new Error(`Unsupported locale: ${locale}`);
+    await withTransaction(async connection => {
+        await ensureGuildSettings(connection, guildId, actorId);
+        await connection.execute(
+            'UPDATE guild_settings SET locale = ?, updated_by = ? WHERE guild_id = ?',
+            [locale, actorId, guildId]
+        );
+        await writeSettingsAudit(connection, guildId, actorId, 'locale_changed', { locale });
+    });
+    return getGuildSettings(guildId);
+}
+
+async function toggleGuildFeature(guildId, actorId, featureKey) {
+    if (!FEATURE_KEYS.includes(featureKey)) throw new Error(`Unsupported feature: ${featureKey}`);
+    return withTransaction(async connection => {
+        await ensureGuildSettings(connection, guildId, actorId);
+        await connection.execute(
+            `INSERT INTO guild_features (guild_id, feature_key, enabled, updated_by)
+             VALUES (?, ?, FALSE, ?)
+             ON DUPLICATE KEY UPDATE enabled = NOT enabled, updated_by = VALUES(updated_by)`,
+            [guildId, featureKey, actorId]
+        );
+        const [rows] = await connection.execute(
+            'SELECT enabled FROM guild_features WHERE guild_id = ? AND feature_key = ?',
+            [guildId, featureKey]
+        );
+        const enabled = Boolean(rows[0].enabled);
+        await writeSettingsAudit(connection, guildId, actorId, 'feature_toggled', { featureKey, enabled });
+        return enabled;
+    });
+}
+
+async function resetGuildSettings(guildId, actorId) {
+    await withTransaction(async connection => {
+        await connection.execute('DELETE FROM guild_settings WHERE guild_id = ?', [guildId]);
+        await writeSettingsAudit(connection, guildId, actorId, 'settings_reset', {});
+    });
+    return defaultGuildSettings();
+}
+
 async function withTransaction(callback) {
     const connection = await getPool().getConnection();
     try {
@@ -48,8 +131,8 @@ async function withTransaction(callback) {
     }
 }
 
-function validateName(name, label) {
-    if (!name || !name.trim()) throw new UserFacingError(`${label} 이름을 입력해 주세요.`);
+function validateName(name, labelKey) {
+    if (!name || !name.trim()) throw new UserFacingError('name_required', { labelKey });
 }
 
 async function getUser(userId) {
@@ -95,19 +178,19 @@ async function requireOwnedGacha(gachaId, ownerId, connection = getPool()) {
         'SELECT id, owner_id, gacha_name FROM gachas WHERE id = ? AND owner_id = ?',
         [gachaId, ownerId]
     );
-    if (!rows[0]) throw new UserFacingError('해당 가챠를 찾을 수 없거나 관리 권한이 없습니다.');
+    if (!rows[0]) throw new UserFacingError('gacha_not_owned');
     return rows[0];
 }
 
 async function createGacha(ownerId, name) {
-    validateName(name, '가챠');
+    validateName(name, 'gacha_label');
     return withTransaction(async connection => {
         const [countRows] = await connection.execute(
             'SELECT COUNT(*) AS count FROM gachas WHERE owner_id = ? FOR UPDATE',
             [ownerId]
         );
         if (Number(countRows[0].count) >= MAX_COMPONENT_OPTIONS) {
-            throw new UserFacingError(`가챠는 사용자당 최대 ${MAX_COMPONENT_OPTIONS}개까지 만들 수 있습니다.`);
+            throw new UserFacingError('gacha_limit', { maximum: MAX_COMPONENT_OPTIONS });
         }
         try {
             const [result] = await connection.execute(
@@ -116,7 +199,7 @@ async function createGacha(ownerId, name) {
             );
             return String(result.insertId);
         } catch (error) {
-            if (error.code === 'ER_DUP_ENTRY') throw new UserFacingError('같은 이름의 가챠가 이미 있습니다.');
+            if (error.code === 'ER_DUP_ENTRY') throw new UserFacingError('duplicate_gacha');
             throw error;
         }
     });
@@ -144,21 +227,21 @@ async function requireOwnedGrade(gradeId, ownerId, connection = getPool()) {
          WHERE gr.id = ? AND ga.owner_id = ?`,
         [gradeId, ownerId]
     );
-    if (!rows[0]) throw new UserFacingError('해당 등급을 찾을 수 없거나 관리 권한이 없습니다.');
+    if (!rows[0]) throw new UserFacingError('grade_not_owned');
     return rows[0];
 }
 
 function validateGrade(percentage, color) {
     if (!Number.isInteger(percentage) || percentage < 1 || percentage > 100) {
-        throw new UserFacingError('등급 확률은 1부터 100 사이의 정수여야 합니다.');
+        throw new UserFacingError('invalid_percentage');
     }
     if (!ALLOWED_COLORS.has(color)) {
-        throw new UserFacingError('색상은 gray, green, blue, purple, yellow 중 하나여야 합니다.');
+        throw new UserFacingError('invalid_color');
     }
 }
 
 async function createGrade(gachaId, ownerId, { name, percentage, color }) {
-    validateName(name, '등급');
+    validateName(name, 'grade_label');
     validateGrade(percentage, color);
     return withTransaction(async connection => {
         await requireOwnedGacha(gachaId, ownerId, connection);
@@ -167,24 +250,24 @@ async function createGrade(gachaId, ownerId, { name, percentage, color }) {
             [gachaId]
         );
         if (grades.length >= MAX_COMPONENT_OPTIONS) {
-            throw new UserFacingError(`등급은 가챠당 최대 ${MAX_COMPONENT_OPTIONS}개까지 만들 수 있습니다.`);
+            throw new UserFacingError('grade_limit', { maximum: MAX_COMPONENT_OPTIONS });
         }
         const total = grades.reduce((sum, grade) => sum + Number(grade.percentage), 0);
-        if (total + percentage > 100) throw new UserFacingError('전체 등급 확률의 합은 100%를 넘을 수 없습니다.');
+        if (total + percentage > 100) throw new UserFacingError('percentage_limit');
         try {
             await connection.execute(
                 'INSERT INTO grades (gacha_id, grade_name, percentage, color) VALUES (?, ?, ?, ?)',
                 [gachaId, name, percentage, color]
             );
         } catch (error) {
-            if (error.code === 'ER_DUP_ENTRY') throw new UserFacingError('같은 이름의 등급이 이미 있습니다.');
+            if (error.code === 'ER_DUP_ENTRY') throw new UserFacingError('duplicate_grade');
             throw error;
         }
     });
 }
 
 async function updateGrade(gradeId, ownerId, { name, percentage, color }) {
-    validateName(name, '등급');
+    validateName(name, 'grade_label');
     validateGrade(percentage, color);
     return withTransaction(async connection => {
         const grade = await requireOwnedGrade(gradeId, ownerId, connection);
@@ -196,14 +279,14 @@ async function updateGrade(gradeId, ownerId, { name, percentage, color }) {
             (sum, current) => sum + (String(current.id) === String(gradeId) ? 0 : Number(current.percentage)),
             0
         );
-        if (total + percentage > 100) throw new UserFacingError('전체 등급 확률의 합은 100%를 넘을 수 없습니다.');
+        if (total + percentage > 100) throw new UserFacingError('percentage_limit');
         try {
             await connection.execute(
                 'UPDATE grades SET grade_name = ?, percentage = ?, color = ? WHERE id = ?',
                 [name, percentage, color, gradeId]
             );
         } catch (error) {
-            if (error.code === 'ER_DUP_ENTRY') throw new UserFacingError('같은 이름의 등급이 이미 있습니다.');
+            if (error.code === 'ER_DUP_ENTRY') throw new UserFacingError('duplicate_grade');
             throw error;
         }
     });
@@ -233,12 +316,12 @@ async function requireOwnedItem(itemId, ownerId, connection = getPool()) {
          WHERE i.id = ? AND ga.owner_id = ?`,
         [itemId, ownerId]
     );
-    if (!rows[0]) throw new UserFacingError('해당 아이템을 찾을 수 없거나 관리 권한이 없습니다.');
+    if (!rows[0]) throw new UserFacingError('item_not_owned');
     return rows[0];
 }
 
 async function createItem(gradeId, ownerId, { name, description }) {
-    validateName(name, '아이템');
+    validateName(name, 'item_label');
     return withTransaction(async connection => {
         await requireOwnedGrade(gradeId, ownerId, connection);
         const [countRows] = await connection.execute(
@@ -246,7 +329,7 @@ async function createItem(gradeId, ownerId, { name, description }) {
             [gradeId]
         );
         if (Number(countRows[0].count) >= MAX_COMPONENT_OPTIONS) {
-            throw new UserFacingError(`아이템은 등급당 최대 ${MAX_COMPONENT_OPTIONS}개까지 만들 수 있습니다.`);
+            throw new UserFacingError('item_limit', { maximum: MAX_COMPONENT_OPTIONS });
         }
         try {
             await connection.execute(
@@ -254,14 +337,14 @@ async function createItem(gradeId, ownerId, { name, description }) {
                 [gradeId, name, description || null]
             );
         } catch (error) {
-            if (error.code === 'ER_DUP_ENTRY') throw new UserFacingError('같은 이름의 아이템이 이미 있습니다.');
+            if (error.code === 'ER_DUP_ENTRY') throw new UserFacingError('duplicate_item');
             throw error;
         }
     });
 }
 
 async function updateItem(itemId, ownerId, { name, description }) {
-    validateName(name, '아이템');
+    validateName(name, 'item_label');
     return withTransaction(async connection => {
         await requireOwnedItem(itemId, ownerId, connection);
         try {
@@ -270,7 +353,7 @@ async function updateItem(itemId, ownerId, { name, description }) {
                 [name, description || null, itemId]
             );
         } catch (error) {
-            if (error.code === 'ER_DUP_ENTRY') throw new UserFacingError('같은 이름의 아이템이 이미 있습니다.');
+            if (error.code === 'ER_DUP_ENTRY') throw new UserFacingError('duplicate_item');
             throw error;
         }
     });
@@ -285,7 +368,12 @@ async function deleteItem(itemId, ownerId) {
 
 module.exports = {
     MAX_COMPONENT_OPTIONS,
+    FEATURE_KEYS,
     closePool,
+    getGuildSettings,
+    setGuildLocale,
+    toggleGuildFeature,
+    resetGuildSettings,
     getUser,
     getOrCreateUser,
     recordDailyFortune,

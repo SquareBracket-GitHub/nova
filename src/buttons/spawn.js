@@ -1,8 +1,10 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const { listGrades, requireOwnedGacha } = require('../functions/db');
 const { BRAND_COLOR } = require('../functions/ui');
+const { t } = require('../functions/i18n');
 
 module.exports = {
+    feature: 'gacha',
     id: 'spawn',
     hasExtraData: true,
     async execute(interaction) {
@@ -12,12 +14,12 @@ module.exports = {
         const gacha = await requireOwnedGacha(gachaId, interaction.user.id);
         const grades = await listGrades(gachaId);
         if (!grades.length) {
-            await interaction.reply({ content: '가챠를 공개하기 전에 등급을 하나 이상 만들어 주세요.', ephemeral: true });
+            await interaction.reply({ content: t(interaction, 'spawn_requires_grade'), ephemeral: true });
             return;
         }
 
         const embed = new EmbedBuilder()
-            .setAuthor({ name: `${interaction.user.username}님의 가챠`, iconURL: interaction.user.displayAvatarURL() })
+            .setAuthor({ name: t(interaction, 'gacha_author', { username: interaction.user.username }), iconURL: interaction.user.displayAvatarURL() })
             .setTitle(`${gacha.gacha_name}${count === 10 ? ' (×10)' : ''}`)
             .setColor(BRAND_COLOR);
         const row = new ActionRowBuilder().addComponents(
@@ -26,7 +28,7 @@ module.exports = {
 
         await interaction.deferUpdate();
         await interaction.channel.send({
-            content: `<@${interaction.user.id}>님이 가챠를 공개했습니다!`,
+            content: t(interaction, 'gacha_published', { userId: interaction.user.id }),
             embeds: [embed],
             components: [row]
         });

@@ -10,13 +10,40 @@ services:
       TZ: Asia/Seoul
     volumes:
       - db-data:/var/lib/mysql
-      - ./schema.sql:/docker-entrypoint-initdb.d/001_initial.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u\"$${MYSQL_USER}\" -p\"$${MYSQL_PASSWORD}\" --silent"]
       interval: 5s
       timeout: 5s
       retries: 20
       start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["node", "scripts/migrate.js"]
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER}
+      DB_PW: ${DB_PW}
+      DB_NAME: ${DB_NAME}
+      TZ: Asia/Seoul
+    read_only: true
+    tmpfs:
+      - /tmp
     security_opt:
       - no-new-privileges:true
     logging:
@@ -32,8 +59,8 @@ services:
     restart: unless-stopped
     init: true
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
       BOT_ENV: ${BOT_ENV:-test}
       NODE_ENV: ${NODE_ENV:-production}

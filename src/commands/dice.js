@@ -1,25 +1,31 @@
 const { EmbedBuilder, SlashCommandBuilder } = require('discord.js');
 const { rollDice } = require('../functions/random');
 const { BRAND_COLOR } = require('../functions/ui');
+const { t } = require('../functions/i18n');
 
 module.exports = {
+    feature: 'dice',
     data: new SlashCommandBuilder()
         .setName('dice')
-        .setDescription('주사위를 굴립니다.')
+        .setDescription('Roll dice.')
+        .setDescriptionLocalization('ko', '주사위를 굴립니다.')
         .addIntegerOption(option => option
             .setName('d')
-            .setDescription('주사위의 최대 눈을 정합니다.')
+            .setDescription('Set the number of sides.')
+            .setDescriptionLocalization('ko', '주사위의 최대 눈을 정합니다.')
             .setRequired(true)
             .setMinValue(2)
             .setMaxValue(1_000_000))
         .addIntegerOption(option => option
             .setName('times')
-            .setDescription('주사위를 굴릴 횟수를 정합니다.')
+            .setDescription('Set how many dice to roll.')
+            .setDescriptionLocalization('ko', '주사위를 굴릴 횟수를 정합니다.')
             .setMinValue(1)
             .setMaxValue(10))
         .addBooleanOption(option => option
             .setName('ephemeral')
-            .setDescription('결과를 자신에게만 표시합니다.')),
+            .setDescription('Show the result only to you.')
+            .setDescriptionLocalization('ko', '결과를 자신에게만 표시합니다.')),
 
     async execute(interaction) {
         const sides = interaction.options.getInteger('d', true);
@@ -33,12 +39,12 @@ module.exports = {
 
         const embed = new EmbedBuilder()
             .setAuthor({
-                name: `${interaction.user.username}님의 ${count > 1 ? count : ''}d${sides}`,
+                name: t(interaction, 'dice_author', { username: interaction.user.username, dice: `${count > 1 ? count : ''}d${sides}` }),
                 iconURL: interaction.user.displayAvatarURL()
             })
             .setDescription(`>>> ${expression}`)
             .setColor(BRAND_COLOR);
 
-        await interaction.reply({ content: '타라락.', embeds: [embed], ephemeral });
+        await interaction.reply({ content: t(interaction, 'roll_sound'), embeds: [embed], ephemeral });
     }
 };

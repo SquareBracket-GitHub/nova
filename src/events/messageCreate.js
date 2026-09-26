@@ -1,5 +1,6 @@
 const { EmbedBuilder, Events } = require('discord.js');
 const { BRAND_COLOR } = require('../functions/ui');
+const { getGuildSettings } = require('../functions/db');
 
 module.exports = {
     event: Events.MessageCreate,
@@ -9,6 +10,8 @@ module.exports = {
 
         const match = /^<(a?):[^:<>]+:([0-9]+)>$/.exec(message.content.trim());
         if (!match) return;
+        const settings = await getGuildSettings(message.guildId);
+        if (!settings.features.emoji) return;
 
         const extension = match[1] === 'a' ? 'gif' : 'png';
         const embed = new EmbedBuilder()

@@ -1,6 +1,8 @@
 const { createItem } = require('../functions/db');
+const { t } = require('../functions/i18n');
 
 module.exports = {
+    feature: 'gacha',
     id: 'createItemModal',
     hasExtraData: true,
     async execute(interaction) {
@@ -9,6 +11,6 @@ module.exports = {
             name: interaction.fields.getTextInputValue('item_name').trim(),
             description: interaction.fields.getTextInputValue('item_description').trim()
         });
-        await interaction.reply({ content: '아이템을 만들었습니다.', ephemeral: true });
+        await interaction.reply({ content: t(interaction, 'item_created'), ephemeral: true });
     }
 };

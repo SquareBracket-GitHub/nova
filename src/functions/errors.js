@@ -1,8 +1,9 @@
 class UserFacingError extends Error {
-    constructor(userMessage) {
-        super(userMessage);
+    constructor(translationKey, variables = {}) {
+        super(translationKey);
         this.name = 'UserFacingError';
-        this.userMessage = userMessage;
+        this.translationKey = translationKey;
+        this.variables = variables;
     }
 }
 

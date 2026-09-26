@@ -1,11 +1,13 @@
 const { deleteGrade } = require('../functions/db');
+const { t } = require('../functions/i18n');
 
 module.exports = {
+    feature: 'gacha',
     id: 'deleteGrade',
     hasExtraData: true,
     async execute(interaction) {
         const gradeId = interaction.customId.split('|')[1];
         await deleteGrade(gradeId, interaction.user.id);
-        await interaction.reply({ content: '등급과 포함된 아이템을 삭제했습니다.', ephemeral: true });
+        await interaction.reply({ content: t(interaction, 'grade_deleted'), ephemeral: true });
     }
 };

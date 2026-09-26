@@ -25,6 +25,13 @@ test('all slash commands serialize to valid Discord command data', () => {
     const commands = load('commands').map(command => command.data.toJSON());
     assert.deepEqual(
         commands.map(command => command.name).sort(),
-        ['dice', 'fortune', 'gacha-create', 'gacha-delete', 'gacha-manage', 'ping', 'profile', 'special-dice'].sort()
+        ['dice', 'fortune', 'gacha-create', 'gacha-delete', 'gacha-manage', 'ping', 'profile', 'settings', 'special-dice'].sort()
     );
+});
+
+test('settings is a guild-only Manage Server command', () => {
+    const command = load('commands').find(handler => handler.data.name === 'settings').data.toJSON();
+    assert.equal(command.default_member_permissions, '32');
+    assert.deepEqual(command.contexts, [0]);
+    assert.deepEqual(command.integration_types, [0]);
 });

@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
-const { Events } = require("discord.js");
+const { Events, MessageFlags } = require("discord.js");
+const { getGuildSettings } = require('../functions/db');
+const { t } = require('../functions/i18n');
 
 function loadHandlers(directory) {
     const absoluteDirectory = path.join(__dirname, '..', directory);
@@ -23,8 +25,12 @@ function findComponent(handlers, customId) {
 
 async function reportError(interaction, error) {
     console.error(error);
-    const content = error.userMessage || '요청을 처리하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
-    const response = { content, ephemeral: true };
+    const variables = { ...error.variables };
+    if (variables.labelKey) variables.label = t(interaction, variables.labelKey);
+    const content = error.translationKey
+        ? t(interaction, error.translationKey, variables)
+        : t(interaction, 'generic_error');
+    const response = { content, flags: MessageFlags.Ephemeral };
 
     if (interaction.deferred || interaction.replied) await interaction.followUp(response);
     else await interaction.reply(response);
@@ -47,7 +53,15 @@ module.exports = {
                 handler = findComponent(modals, interaction.customId);
             }
 
-            if (handler) await handler.execute(interaction, client);
+            if (!handler) return;
+
+            interaction.novaSettings = await getGuildSettings(interaction.guildId);
+            if (handler.feature && !interaction.novaSettings.features[handler.feature]) {
+                await interaction.reply({ content: t(interaction, 'feature_disabled'), flags: MessageFlags.Ephemeral });
+                return;
+            }
+
+            await handler.execute(interaction, client);
         } catch (error) {
             await reportError(interaction, error);
         }

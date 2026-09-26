@@ -3,8 +3,10 @@ const { EmbedBuilder } = require('discord.js');
 const { getGacha, listGrades, listItems } = require('../functions/db');
 const { BRAND_COLOR, GRADE_COLORS } = require('../functions/ui');
 const { UserFacingError } = require('../functions/errors');
+const { t } = require('../functions/i18n');
 
 module.exports = {
+    feature: 'gacha',
     id: 'spin',
     hasExtraData: true,
     async execute(interaction) {
@@ -13,9 +15,9 @@ module.exports = {
         if (![1, 10].includes(count)) throw new Error('Invalid spin count.');
 
         const gacha = await getGacha(gachaId);
-        if (!gacha) throw new UserFacingError('이 가챠는 더 이상 존재하지 않습니다.');
+        if (!gacha) throw new UserFacingError('gacha_missing');
         const grades = await listGrades(gachaId);
-        if (!grades.length) throw new UserFacingError('이 가챠에는 등급이 없습니다.');
+        if (!grades.length) throw new UserFacingError('gacha_no_grades');
 
         let cursor = 1;
         const probabilityTree = [];
@@ -28,7 +30,7 @@ module.exports = {
         const results = Array.from({ length: count }, () => {
             const roll = randomInt(1, 101);
             const grade = probabilityTree.find(candidate => roll >= candidate.start && roll <= candidate.end);
-            if (!grade) return { blank: true, item: '-', grade: '꽝' };
+            if (!grade) return { blank: true, item: '-', grade: t(interaction, 'blank') };
             if (!grade.items.length) return { item: '-', grade: grade.grade_name, color: grade.color, description: null };
             const item = grade.items[randomInt(grade.items.length)];
             return {
@@ -43,14 +45,14 @@ module.exports = {
         if (count === 1) {
             const result = results[0];
             embed = new EmbedBuilder()
-                .setAuthor({ name: `${interaction.user.username}님의 결과`, iconURL: interaction.user.displayAvatarURL() })
-                .setTitle(result.blank ? '꽝' : `${result.item} (${result.grade})`)
+                .setAuthor({ name: t(interaction, 'result_author', { username: interaction.user.username }), iconURL: interaction.user.displayAvatarURL() })
+                .setTitle(result.blank ? t(interaction, 'blank') : `${result.item} (${result.grade})`)
                 .setColor(result.blank ? BRAND_COLOR : GRADE_COLORS[result.color]);
-            if (result.blank) embed.setDescription('아쉽지만 이번에는 꽝입니다. 다음 행운을 기대해 보세요.');
+            if (result.blank) embed.setDescription(t(interaction, 'blank_description'));
             else if (result.description) embed.setDescription(result.description);
         } else {
             embed = new EmbedBuilder()
-                .setAuthor({ name: `${interaction.user.username}님의 결과`, iconURL: interaction.user.displayAvatarURL() })
+                .setAuthor({ name: t(interaction, 'result_author', { username: interaction.user.username }), iconURL: interaction.user.displayAvatarURL() })
                 .setDescription(results.map((result, index) => `${index + 1}. ${result.item} (${result.grade})`).join('\n'))
                 .setColor(BRAND_COLOR);
         }
