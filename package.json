@@ -1,0 +1,22 @@
+{
+  "dependencies": {
+    "discord.js": "^14.6.0",
+    "dotenv": "^16.4.5",
+    "mysql2": "^3.11.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  },
+  "name": "nova-bot",
+  "version": "0.1.0",
+  "main": "src/bot.js",
+  "scripts": {
+    "start": "node .",
+    "test": "node --test",
+    "dev": "nodemon .",
+    "deployCommands": "node src/deployCommands.js"
+  },
+  "author": "Team Pixel Punk",
+  "license": "ISC",
+  "description": "Unified dice, fortune, emoji and custom gacha Discord bot"
+}
