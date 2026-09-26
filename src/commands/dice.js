@@ -45,6 +45,6 @@ module.exports = {
             .setDescription(`>>> ${expression}`)
             .setColor(BRAND_COLOR);
 
-        await interaction.reply({ content: t(interaction, 'roll_sound'), embeds: [embed], ephemeral });
+        await interaction.reply({ embeds: [embed], ephemeral });
     }
 };
