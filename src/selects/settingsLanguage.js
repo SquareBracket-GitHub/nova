@@ -7,8 +7,11 @@ module.exports = {
     hasExtraData: false,
     async execute(interaction) {
         assertSettingsAccess(interaction);
-        const settings = await setGuildLocale(interaction.guildId, interaction.user.id, interaction.values[0]);
+        await interaction.deferUpdate();
+        const locale = await setGuildLocale(interaction.guildId, interaction.user.id, interaction.values[0]);
+        const settings = interaction.novaSettings;
+        settings.locale = locale;
         interaction.novaSettings = settings;
-        await interaction.update(settingsView(settings));
+        await interaction.editReply(settingsView(settings));
     }
 };

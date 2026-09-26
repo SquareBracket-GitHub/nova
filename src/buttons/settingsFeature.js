@@ -1,4 +1,4 @@
-const { toggleGuildFeature, getGuildSettings } = require('../functions/db');
+const { toggleGuildFeature } = require('../functions/db');
 const { assertSettingsAccess } = require('../functions/settingsAccess');
 const { settingsView } = require('../functions/settingsUi');
 
@@ -8,9 +8,11 @@ module.exports = {
     async execute(interaction) {
         assertSettingsAccess(interaction);
         const featureKey = interaction.customId.split('|')[1];
-        await toggleGuildFeature(interaction.guildId, interaction.user.id, featureKey);
-        const settings = await getGuildSettings(interaction.guildId);
+        await interaction.deferUpdate();
+        const enabled = await toggleGuildFeature(interaction.guildId, interaction.user.id, featureKey);
+        const settings = interaction.novaSettings;
+        settings.features[featureKey] = enabled;
         interaction.novaSettings = settings;
-        await interaction.update(settingsView(settings));
+        await interaction.editReply(settingsView(settings));
     }
 };

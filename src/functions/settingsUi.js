@@ -14,7 +14,7 @@ function settingsView(settings) {
     const context = { novaSettings: settings };
     const features = FEATURE_KEYS.map(key => {
         const state = settings.features[key] ? t(context, 'settings_enabled') : t(context, 'settings_disabled');
-        return `${settings.features[key] ? '✅' : '⬜'} ${t(context, `feature_${key}`)} — ${state}`;
+        return `\`${t(context, `feature_${key}`)}\` — ${state}`;
     }).join('\n');
 
     const embed = new EmbedBuilder()

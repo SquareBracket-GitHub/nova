@@ -45,18 +45,19 @@ function defaultGuildSettings() {
 async function getGuildSettings(guildId) {
     if (!guildId) return defaultGuildSettings();
     const settings = defaultGuildSettings();
-    const [guildRows] = await getPool().execute(
-        'SELECT locale FROM guild_settings WHERE guild_id = ?',
+    const [rows] = await getPool().execute(
+        `SELECT gs.locale, gf.feature_key, gf.enabled
+         FROM guild_settings gs
+         LEFT JOIN guild_features gf ON gf.guild_id = gs.guild_id
+         WHERE gs.guild_id = ?`,
         [guildId]
     );
-    if (!guildRows[0]) return settings;
+    if (!rows[0]) return settings;
 
-    settings.locale = guildRows[0].locale;
-    const [featureRows] = await getPool().execute(
-        'SELECT feature_key, enabled FROM guild_features WHERE guild_id = ?',
-        [guildId]
-    );
-    for (const row of featureRows) settings.features[row.feature_key] = Boolean(row.enabled);
+    settings.locale = rows[0].locale;
+    for (const row of rows) {
+        if (row.feature_key) settings.features[row.feature_key] = Boolean(row.enabled);
+    }
     return settings;
 }
 
@@ -85,7 +86,7 @@ async function setGuildLocale(guildId, actorId, locale) {
         );
         await writeSettingsAudit(connection, guildId, actorId, 'locale_changed', { locale });
     });
-    return getGuildSettings(guildId);
+    return locale;
 }
 
 async function toggleGuildFeature(guildId, actorId, featureKey) {
