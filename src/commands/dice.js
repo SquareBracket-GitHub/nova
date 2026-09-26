@@ -4,7 +4,7 @@ const { BRAND_COLOR } = require('../functions/ui');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('주사위')
+        .setName('dice')
         .setDescription('주사위를 굴립니다.')
         .addIntegerOption(option => option
             .setName('d')

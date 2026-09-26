@@ -25,6 +25,6 @@ test('all slash commands serialize to valid Discord command data', () => {
     const commands = load('commands').map(command => command.data.toJSON());
     assert.deepEqual(
         commands.map(command => command.name).sort(),
-        ['create_gacha', 'delete_gacha', 'my_gachas', 'ping', '내정보', '운세', '주사위', '특수주사위'].sort()
+        ['dice', 'fortune', 'gacha-create', 'gacha-delete', 'gacha-manage', 'ping', 'profile', 'special-dice'].sort()
     );
 });

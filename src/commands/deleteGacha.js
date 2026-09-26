@@ -5,7 +5,7 @@ const { listGachasByOwner } = require('../functions/db');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('delete_gacha')
+        .setName('gacha-delete')
         .setDescription('내 가챠를 삭제합니다.'),
 
     async execute(interaction) {

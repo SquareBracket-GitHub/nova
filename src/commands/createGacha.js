@@ -3,7 +3,7 @@ const { createGacha } = require('../functions/db');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('create_gacha')
+        .setName('gacha-create')
         .setDescription('새 가챠를 만듭니다.')
         .addStringOption(option => option
             .setName('gacha_name')

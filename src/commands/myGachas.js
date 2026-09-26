@@ -5,13 +5,13 @@ const { listGachasByOwner } = require('../functions/db');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('my_gachas')
+        .setName('gacha-manage')
         .setDescription('내 가챠 목록을 확인하고 관리합니다.'),
 
     async execute(interaction) {
         const gachas = await listGachasByOwner(interaction.user.id);
         if (!gachas.length) {
-            await interaction.reply({ content: '아직 가챠가 없습니다. `/create_gacha`로 만들어 보세요.', ephemeral: true });
+            await interaction.reply({ content: '아직 가챠가 없습니다. `/gacha-create`로 만들어 보세요.', ephemeral: true });
             return;
         }
 

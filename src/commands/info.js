@@ -4,7 +4,7 @@ const { BRAND_COLOR } = require('../functions/ui');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('내정보')
+        .setName('profile')
         .setDescription('당신의 봇 활용 내역을 확인합니다.'),
 
     async execute(interaction) {

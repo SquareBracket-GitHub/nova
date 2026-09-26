@@ -19,7 +19,7 @@ function fortuneMessage(score) {
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('운세')
+        .setName('fortune')
         .setDescription('오늘의 운세를 행운의 숫자로 나타냅니다.'),
 
     async execute(interaction) {

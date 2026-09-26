@@ -4,7 +4,7 @@ const { BRAND_COLOR } = require('../functions/ui');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('특수주사위')
+        .setName('special-dice')
         .setDescription('보정값이 적용되는 특수주사위를 굴립니다.')
         .addIntegerOption(option => option
             .setName('d')
