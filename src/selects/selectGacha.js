@@ -1,6 +1,6 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const { listGrades, listItems, requireOwnedGacha } = require('../functions/db');
-const { truncate } = require('../functions/ui');
+const { BRAND_COLOR, truncate } = require('../functions/ui');
 
 module.exports = {
     id: 'selectGacha',
@@ -9,7 +9,7 @@ module.exports = {
         const gachaId = interaction.values[0];
         const gacha = await requireOwnedGacha(gachaId, interaction.user.id);
         const grades = await listGrades(gachaId);
-        const embed = new EmbedBuilder().setTitle(gacha.gacha_name).setColor('#BD31F2');
+        const embed = new EmbedBuilder().setTitle(gacha.gacha_name).setColor(BRAND_COLOR);
 
         if (!grades.length) {
             embed.setDescription('아직 등급과 아이템이 없습니다. 먼저 등급을 만들어 주세요.');

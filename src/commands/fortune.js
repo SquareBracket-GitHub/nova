@@ -1,6 +1,7 @@
 const { EmbedBuilder, SlashCommandBuilder } = require('discord.js');
 const { recordDailyFortune } = require('../functions/db');
 const { rollDice } = require('../functions/random');
+const { BRAND_COLOR } = require('../functions/ui');
 
 function todayInKorea() {
     return new Intl.DateTimeFormat('en-CA', {
@@ -32,7 +33,7 @@ module.exports = {
         const embed = new EmbedBuilder()
             .setAuthor({ name: `${interaction.user.username}님의 운세`, iconURL: interaction.user.displayAvatarURL() })
             .setDescription(`> ${score}\n\n${fortuneMessage(score)}`)
-            .setColor('#F8F1C8');
+            .setColor(BRAND_COLOR);
         await interaction.reply({ embeds: [embed] });
     }
 };

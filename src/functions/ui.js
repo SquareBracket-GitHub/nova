@@ -1,3 +1,5 @@
+const BRAND_COLOR = '#FFFFFF';
+
 const GRADE_COLORS = {
     gray: '#8F9498',
     green: '#47653A',
@@ -11,4 +13,4 @@ function truncate(value, maximum = 1024) {
     return `${value.slice(0, maximum - 1)}…`;
 }
 
-module.exports = { GRADE_COLORS, truncate };
+module.exports = { BRAND_COLOR, GRADE_COLORS, truncate };

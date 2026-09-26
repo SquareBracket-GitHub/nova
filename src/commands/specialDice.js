@@ -1,5 +1,6 @@
 const { EmbedBuilder, SlashCommandBuilder } = require('discord.js');
 const { rollDice } = require('../functions/random');
+const { BRAND_COLOR } = require('../functions/ui');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -53,7 +54,7 @@ module.exports = {
                 iconURL: interaction.user.displayAvatarURL()
             })
             .setDescription(`>>> ${base} ${sign} ${effectNumber} = **${result.modifiedTotal}**`)
-            .setColor(effect === 'plus' ? '#DD2E44' : '#54ACEF');
+            .setColor(BRAND_COLOR);
 
         await interaction.reply({ content: '타라락.', embeds: [embed], ephemeral });
     }

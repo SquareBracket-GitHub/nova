@@ -1,4 +1,5 @@
 const { EmbedBuilder, Events } = require('discord.js');
+const { BRAND_COLOR } = require('../functions/ui');
 
 module.exports = {
     event: Events.MessageCreate,
@@ -13,7 +14,7 @@ module.exports = {
         const embed = new EmbedBuilder()
             .setAuthor({ name: message.author.username, iconURL: message.author.displayAvatarURL() })
             .setImage(`https://cdn.discordapp.com/emojis/${match[2]}.${extension}`)
-            .setColor('#2B2D31');
+            .setColor(BRAND_COLOR);
 
         if (message.reference?.messageId) {
             const repliedMessage = await message.channel.messages.fetch(message.reference.messageId);

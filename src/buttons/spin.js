@@ -1,7 +1,7 @@
 const { randomInt } = require('crypto');
 const { EmbedBuilder } = require('discord.js');
 const { getGacha, listGrades, listItems } = require('../functions/db');
-const { GRADE_COLORS } = require('../functions/ui');
+const { BRAND_COLOR, GRADE_COLORS } = require('../functions/ui');
 const { UserFacingError } = require('../functions/errors');
 
 module.exports = {
@@ -45,14 +45,14 @@ module.exports = {
             embed = new EmbedBuilder()
                 .setAuthor({ name: `${interaction.user.username}님의 결과`, iconURL: interaction.user.displayAvatarURL() })
                 .setTitle(result.blank ? '꽝' : `${result.item} (${result.grade})`)
-                .setColor(result.blank ? '#FFFFFF' : GRADE_COLORS[result.color]);
+                .setColor(result.blank ? BRAND_COLOR : GRADE_COLORS[result.color]);
             if (result.blank) embed.setDescription('아쉽지만 이번에는 꽝입니다. 다음 행운을 기대해 보세요.');
             else if (result.description) embed.setDescription(result.description);
         } else {
             embed = new EmbedBuilder()
                 .setAuthor({ name: `${interaction.user.username}님의 결과`, iconURL: interaction.user.displayAvatarURL() })
                 .setDescription(results.map((result, index) => `${index + 1}. ${result.item} (${result.grade})`).join('\n'))
-                .setColor('#FFFFFF');
+                .setColor(BRAND_COLOR);
         }
 
         await interaction.update({ content: '', embeds: [embed], components: [] });

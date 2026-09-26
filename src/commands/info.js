@@ -1,5 +1,6 @@
 const { EmbedBuilder, SlashCommandBuilder } = require('discord.js');
 const { getOrCreateUser } = require('../functions/db');
+const { BRAND_COLOR } = require('../functions/ui');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -11,7 +12,7 @@ module.exports = {
         const embed = new EmbedBuilder()
             .setAuthor({ name: `${interaction.user.username}님의 정보`, iconURL: interaction.user.displayAvatarURL() })
             .addFields({ name: '마지막 운세 확인일', value: user.last_fortune || '아직 확인하지 않음', inline: true })
-            .setColor('#F8F1C8');
+            .setColor(BRAND_COLOR);
         await interaction.reply({ embeds: [embed] });
     }
 };
