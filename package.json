@@ -8,7 +8,7 @@
     "nodemon": "^3.1.14"
   },
   "name": "nova-bot",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "main": "src/bot.js",
   "scripts": {
     "start": "node .",
@@ -19,5 +19,5 @@
   },
   "author": "Team Pixel Punk",
   "license": "ISC",
-  "description": "Unified dice, fortune, emoji and custom gacha Discord bot"
+  "description": "Discord utility bot for dice, fortune, custom gacha, random tools, signups and emoji"
 }

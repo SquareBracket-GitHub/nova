@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { Events, MessageFlags } = require("discord.js");
-const { getGuildSettings } = require('../functions/db');
+const { getGuildSettings, recordCommandUse } = require('../functions/db');
 const { t } = require('../functions/i18n');
 
 function loadHandlers(directory) {
@@ -41,6 +41,13 @@ module.exports = {
     once: false,
     async execute(interaction, client) {
         try {
+            if (interaction.isAutocomplete()) {
+                const handler = commands.find(command => command.data.name === interaction.commandName);
+                if (handler?.autocomplete) await handler.autocomplete(interaction);
+                else await interaction.respond([]);
+                return;
+            }
+
             let handler;
 
             if (interaction.isChatInputCommand()) {
@@ -59,6 +66,10 @@ module.exports = {
             if (handler.feature && !interaction.novaSettings.features[handler.feature]) {
                 await interaction.reply({ content: t(interaction, 'feature_disabled'), flags: MessageFlags.Ephemeral });
                 return;
+            }
+
+            if (interaction.isChatInputCommand()) {
+                await recordCommandUse(interaction.user.id, Date.now());
             }
 
             await handler.execute(interaction, client);

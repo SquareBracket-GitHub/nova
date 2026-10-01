@@ -1,9 +1,19 @@
 const { randomInt } = require('crypto');
-const { EmbedBuilder } = require('discord.js');
-const { getGacha, listGrades, listItems } = require('../functions/db');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+const { addGachaPulls, getGacha, listGrades, listItems } = require('../functions/db');
 const { BRAND_COLOR, GRADE_COLORS } = require('../functions/ui');
 const { UserFacingError } = require('../functions/errors');
 const { t } = require('../functions/i18n');
+
+async function getCreator(client, ownerId) {
+    const cached = client.users.cache.get(ownerId);
+    if (cached) return cached;
+    try {
+        return await client.users.fetch(ownerId);
+    } catch {
+        return null;
+    }
+}
 
 module.exports = {
     feature: 'gacha',
@@ -16,6 +26,7 @@ module.exports = {
 
         const gacha = await getGacha(gachaId);
         if (!gacha) throw new UserFacingError('gacha_missing');
+        const creatorPromise = getCreator(interaction.client, gacha.owner_id);
         const grades = await listGrades(gachaId);
         if (!grades.length) throw new UserFacingError('gacha_no_grades');
 
@@ -40,6 +51,7 @@ module.exports = {
                 description: item.item_description
             };
         });
+        await addGachaPulls(interaction.user.id, count);
 
         let embed;
         if (count === 1) {
@@ -56,7 +68,22 @@ module.exports = {
                 .setDescription(results.map((result, index) => `${index + 1}. ${result.item} (${result.grade})`).join('\n'))
                 .setColor(BRAND_COLOR);
         }
+        const creator = await creatorPromise;
+        const creatorName = creator?.username || gacha.owner_id;
+        embed.setFooter({
+            text: t(interaction, 'gacha_result_footer', { name: gacha.gacha_name, creator: creatorName })
+        });
 
-        await interaction.update({ content: '', embeds: [embed], components: [] });
+        const rerollRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`spin|1|${gachaId}`)
+                .setLabel(t(interaction, 'spin_again_once'))
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId(`spin|10|${gachaId}`)
+                .setLabel(t(interaction, 'spin_again_ten'))
+                .setStyle(ButtonStyle.Success)
+        );
+        await interaction.update({ content: '', embeds: [embed], components: [rerollRow] });
     }
 };

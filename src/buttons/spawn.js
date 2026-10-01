@@ -23,7 +23,7 @@ module.exports = {
             .setTitle(`${gacha.gacha_name}${count === 10 ? ' (×10)' : ''}`)
             .setColor(BRAND_COLOR);
         const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId(`spin|${count}|${gachaId}`).setLabel('Spin!').setStyle(ButtonStyle.Success)
+            new ButtonBuilder().setCustomId(`spin|${count}|${gachaId}`).setLabel(t(interaction, 'spin')).setStyle(ButtonStyle.Success)
         );
 
         await interaction.deferUpdate();

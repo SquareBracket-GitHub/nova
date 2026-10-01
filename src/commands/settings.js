@@ -8,12 +8,10 @@ const {
 const { getGuildSettings } = require('../functions/db');
 const { assertSettingsAccess } = require('../functions/settingsAccess');
 const { settingsView } = require('../functions/settingsUi');
+const { describe } = require('../locales/commands');
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('settings')
-        .setDescription('Configure Nova for this server.')
-        .setDescriptionLocalization('ko', '이 서버의 Nova 설정을 관리합니다.')
+    data: describe(new SlashCommandBuilder().setName('settings'), 'settings')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .setContexts(InteractionContextType.Guild)
         .setIntegrationTypes(ApplicationIntegrationType.GuildInstall),

@@ -3,13 +3,11 @@ const {
 } = require('discord.js');
 const { listGachasByOwner } = require('../functions/db');
 const { t } = require('../functions/i18n');
+const { describe } = require('../locales/commands');
 
 module.exports = {
     feature: 'gacha',
-    data: new SlashCommandBuilder()
-        .setName('gacha-delete')
-        .setDescription('Delete one of your gachas.')
-        .setDescriptionLocalization('ko', '내 가챠를 삭제합니다.'),
+    data: describe(new SlashCommandBuilder().setName('gacha-delete'), 'gachaDelete'),
 
     async execute(interaction) {
         const gachas = await listGachasByOwner(interaction.user.id);

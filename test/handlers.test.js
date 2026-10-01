@@ -25,8 +25,18 @@ test('all slash commands serialize to valid Discord command data', () => {
     const commands = load('commands').map(command => command.data.toJSON());
     assert.deepEqual(
         commands.map(command => command.name).sort(),
-        ['dice', 'fortune', 'gacha-create', 'gacha-delete', 'gacha-manage', 'ping', 'profile', 'settings', 'special-dice'].sort()
+        ['about', 'dice', 'fortune', 'gacha-create', 'gacha-delete', 'gacha-export', 'gacha-import', 'gacha-manage', 'me', 'ping', 'random', 'settings', 'signup', 'special-dice'].sort()
     );
+});
+
+test('all registered command and option descriptions are English-only', () => {
+    const commands = load('commands').map(command => command.data.toJSON());
+    function inspect(node) {
+        assert.equal(node.description_localizations, undefined);
+        assert.equal(node.name_localizations, undefined);
+        for (const option of node.options || []) inspect(option);
+    }
+    commands.forEach(inspect);
 });
 
 test('settings is a guild-only Manage Server command', () => {
@@ -34,4 +44,13 @@ test('settings is a guild-only Manage Server command', () => {
     assert.equal(command.default_member_permissions, '32');
     assert.deepEqual(command.contexts, [0]);
     assert.deepEqual(command.integration_types, [0]);
+});
+
+test('signup is a guild-only command with a bounded optional capacity', () => {
+    const command = load('commands').find(handler => handler.data.name === 'signup').data.toJSON();
+    assert.deepEqual(command.contexts, [0]);
+    assert.deepEqual(command.integration_types, [0]);
+    const capacity = command.options.find(option => option.name === 'capacity');
+    assert.equal(capacity.min_value, 2);
+    assert.equal(capacity.max_value, 50);
 });

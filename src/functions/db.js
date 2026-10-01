@@ -137,7 +137,7 @@ function validateName(name, labelKey) {
 }
 
 async function getUser(userId) {
-    const [rows] = await getPool().execute('SELECT id, last_fortune FROM users WHERE id = ?', [userId]);
+    const [rows] = await getPool().execute('SELECT * FROM users WHERE id = ?', [userId]);
     return rows[0] || null;
 }
 
@@ -146,18 +146,119 @@ async function getOrCreateUser(userId) {
     return getUser(userId);
 }
 
-async function recordDailyFortune(userId, date) {
+async function recordCommandUse(userId, timestamp) {
+    await getPool().execute(
+        `INSERT INTO users (id, first_seen_at_ms, last_active_at_ms, command_uses)
+         VALUES (?, ?, ?, 1)
+         ON DUPLICATE KEY UPDATE
+            first_seen_at_ms = COALESCE(first_seen_at_ms, VALUES(first_seen_at_ms)),
+            last_active_at_ms = VALUES(last_active_at_ms),
+            command_uses = command_uses + 1`,
+        [userId, timestamp, timestamp]
+    );
+}
+
+async function addDiceRolls(userId, count) {
+    const timestamp = Date.now();
+    await getPool().execute(
+        `INSERT INTO users (id, first_seen_at_ms, last_active_at_ms, dice_rolls)
+         VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+            first_seen_at_ms = COALESCE(first_seen_at_ms, VALUES(first_seen_at_ms)),
+            last_active_at_ms = VALUES(last_active_at_ms),
+            dice_rolls = dice_rolls + VALUES(dice_rolls)`,
+        [userId, timestamp, timestamp, count]
+    );
+}
+
+async function addGachaPulls(userId, count) {
+    const timestamp = Date.now();
+    await getPool().execute(
+        `INSERT INTO users (id, first_seen_at_ms, last_active_at_ms, gacha_pulls)
+         VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+            first_seen_at_ms = COALESCE(first_seen_at_ms, VALUES(first_seen_at_ms)),
+            last_active_at_ms = VALUES(last_active_at_ms),
+            gacha_pulls = gacha_pulls + VALUES(gacha_pulls)`,
+        [userId, timestamp, timestamp, count]
+    );
+}
+
+async function getUserProfileStats(userId) {
+    await getPool().execute('INSERT IGNORE INTO users (id) VALUES (?)', [userId]);
+    const [rows] = await getPool().execute(
+        `SELECT u.*,
+            (SELECT COUNT(*) FROM gachas ga WHERE ga.owner_id = u.id) AS gacha_count,
+            (SELECT COUNT(*) FROM grades gr JOIN gachas ga ON ga.id = gr.gacha_id WHERE ga.owner_id = u.id) AS grade_count,
+            (SELECT COUNT(*) FROM items i JOIN grades gr ON gr.id = i.grade_id JOIN gachas ga ON ga.id = gr.gacha_id WHERE ga.owner_id = u.id) AS item_count
+         FROM users u
+         WHERE u.id = ?`,
+        [userId]
+    );
+    return rows[0];
+}
+
+async function recordDailyFortune(userId, date, score, checkedAtMs) {
     return withTransaction(async connection => {
         await connection.execute('INSERT IGNORE INTO users (id) VALUES (?)', [userId]);
         const [rows] = await connection.execute(
-            'SELECT last_fortune FROM users WHERE id = ? FOR UPDATE',
+            'SELECT last_fortune, last_fortune_score, last_fortune_checked_at_ms FROM users WHERE id = ? FOR UPDATE',
             [userId]
         );
 
-        if (rows[0].last_fortune === date) return null;
+        if (rows[0].last_fortune === date && rows[0].last_fortune_score !== null) {
+            return {
+                created: false,
+                date: rows[0].last_fortune,
+                score: Number(rows[0].last_fortune_score),
+                checkedAtMs: Number(rows[0].last_fortune_checked_at_ms)
+            };
+        }
 
-        await connection.execute('UPDATE users SET last_fortune = ? WHERE id = ?', [date, userId]);
-        return { last_fortune: date };
+        await connection.execute(
+            `UPDATE users
+             SET last_fortune = ?, last_fortune_score = ?, last_fortune_checked_at_ms = ?,
+                 fortune_checks = fortune_checks + 1
+             WHERE id = ?`,
+            [date, score, checkedAtMs, userId]
+        );
+        return { created: true, date, score, checkedAtMs };
+    });
+}
+
+async function importGacha(ownerId, definition) {
+    return withTransaction(async connection => {
+        const [countRows] = await connection.execute(
+            'SELECT COUNT(*) AS count FROM gachas WHERE owner_id = ? FOR UPDATE',
+            [ownerId]
+        );
+        if (Number(countRows[0].count) >= MAX_COMPONENT_OPTIONS) {
+            throw new UserFacingError('gacha_limit', { maximum: MAX_COMPONENT_OPTIONS });
+        }
+
+        try {
+            const [gachaResult] = await connection.execute(
+                'INSERT INTO gachas (owner_id, gacha_name) VALUES (?, ?)',
+                [ownerId, definition.name]
+            );
+            const gachaId = String(gachaResult.insertId);
+            for (const grade of definition.grades) {
+                const [gradeResult] = await connection.execute(
+                    'INSERT INTO grades (gacha_id, grade_name, percentage, color) VALUES (?, ?, ?, ?)',
+                    [gachaId, grade.name, grade.percentage, grade.color]
+                );
+                for (const item of grade.items) {
+                    await connection.execute(
+                        'INSERT INTO items (grade_id, item_name, item_description) VALUES (?, ?, ?)',
+                        [String(gradeResult.insertId), item.name, item.description]
+                    );
+                }
+            }
+            return gachaId;
+        } catch (error) {
+            if (error.code === 'ER_DUP_ENTRY') throw new UserFacingError('gacha_import_duplicate');
+            throw error;
+        }
     });
 }
 
@@ -172,6 +273,42 @@ async function listGachasByOwner(ownerId) {
 async function getGacha(gachaId) {
     const [rows] = await getPool().execute('SELECT id, owner_id, gacha_name FROM gachas WHERE id = ?', [gachaId]);
     return rows[0] || null;
+}
+
+async function getOwnedGachaDefinition(gachaId, ownerId) {
+    const gacha = await requireOwnedGacha(gachaId, ownerId);
+    const [rows] = await getPool().execute(
+        `SELECT gr.id AS grade_id, gr.grade_name, gr.percentage, gr.color,
+                i.item_name, i.item_description
+         FROM grades gr
+         LEFT JOIN items i ON i.grade_id = gr.id
+         WHERE gr.gacha_id = ?
+         ORDER BY gr.id, i.id`,
+        [gachaId]
+    );
+    const grades = [];
+    const byId = new Map();
+    for (const row of rows) {
+        const gradeId = String(row.grade_id);
+        let grade = byId.get(gradeId);
+        if (!grade) {
+            grade = {
+                name: row.grade_name,
+                percentage: Number(row.percentage),
+                color: row.color,
+                items: []
+            };
+            byId.set(gradeId, grade);
+            grades.push(grade);
+        }
+        if (row.item_name !== null) {
+            grade.items.push({
+                name: row.item_name,
+                description: row.item_description || ''
+            });
+        }
+    }
+    return { name: gacha.gacha_name, grades };
 }
 
 async function requireOwnedGacha(gachaId, ownerId, connection = getPool()) {
@@ -367,6 +504,93 @@ async function deleteItem(itemId, ownerId) {
     });
 }
 
+function signupFromRow(row, participants = []) {
+    return {
+        id: String(row.id),
+        creatorId: row.creator_id,
+        guildId: row.guild_id,
+        channelId: row.channel_id,
+        title: row.title,
+        details: row.details,
+        capacity: row.capacity === null ? null : Number(row.capacity),
+        closed: Boolean(row.is_closed),
+        createdAtMs: Number(row.created_at_ms),
+        participants
+    };
+}
+
+async function createSignup({ creatorId, guildId, channelId, title, details, capacity }) {
+    const [result] = await getPool().execute(
+        `INSERT INTO signup_events
+            (creator_id, guild_id, channel_id, title, details, capacity, created_at_ms)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [creatorId, guildId, channelId, title, details || null, capacity || null, Date.now()]
+    );
+    return getSignup(String(result.insertId));
+}
+
+async function getSignup(eventId) {
+    const [events] = await getPool().execute('SELECT * FROM signup_events WHERE id = ?', [eventId]);
+    if (!events[0]) return null;
+    const [participants] = await getPool().execute(
+        'SELECT user_id FROM signup_participants WHERE event_id = ? ORDER BY joined_at_ms, user_id',
+        [eventId]
+    );
+    return signupFromRow(events[0], participants.map(row => row.user_id));
+}
+
+async function requireSignup(connection, eventId) {
+    const [rows] = await connection.execute('SELECT * FROM signup_events WHERE id = ? FOR UPDATE', [eventId]);
+    if (!rows[0]) throw new UserFacingError('signup_not_found');
+    return rows[0];
+}
+
+async function joinSignup(eventId, userId) {
+    await withTransaction(async connection => {
+        const event = await requireSignup(connection, eventId);
+        if (event.is_closed) throw new UserFacingError('signup_closed');
+        const [existing] = await connection.execute(
+            'SELECT user_id FROM signup_participants WHERE event_id = ? AND user_id = ?',
+            [eventId, userId]
+        );
+        if (existing[0]) throw new UserFacingError('signup_already_joined');
+        const [countRows] = await connection.execute(
+            'SELECT COUNT(*) AS count FROM signup_participants WHERE event_id = ?',
+            [eventId]
+        );
+        if (event.capacity !== null && Number(countRows[0].count) >= Number(event.capacity)) {
+            throw new UserFacingError('signup_full');
+        }
+        await connection.execute(
+            'INSERT INTO signup_participants (event_id, user_id, joined_at_ms) VALUES (?, ?, ?)',
+            [eventId, userId, Date.now()]
+        );
+    });
+    return getSignup(eventId);
+}
+
+async function leaveSignup(eventId, userId) {
+    await withTransaction(async connection => {
+        const event = await requireSignup(connection, eventId);
+        if (event.is_closed) throw new UserFacingError('signup_closed');
+        const [result] = await connection.execute(
+            'DELETE FROM signup_participants WHERE event_id = ? AND user_id = ?',
+            [eventId, userId]
+        );
+        if (!result.affectedRows) throw new UserFacingError('signup_not_joined');
+    });
+    return getSignup(eventId);
+}
+
+async function closeSignup(eventId, userId) {
+    await withTransaction(async connection => {
+        const event = await requireSignup(connection, eventId);
+        if (event.creator_id !== userId) throw new UserFacingError('signup_close_owner');
+        await connection.execute('UPDATE signup_events SET is_closed = TRUE WHERE id = ?', [eventId]);
+    });
+    return getSignup(eventId);
+}
+
 module.exports = {
     MAX_COMPONENT_OPTIONS,
     FEATURE_KEYS,
@@ -377,9 +601,15 @@ module.exports = {
     resetGuildSettings,
     getUser,
     getOrCreateUser,
+    recordCommandUse,
+    addDiceRolls,
+    addGachaPulls,
+    getUserProfileStats,
     recordDailyFortune,
+    importGacha,
     listGachasByOwner,
     getGacha,
+    getOwnedGachaDefinition,
     requireOwnedGacha,
     createGacha,
     deleteGacha,
@@ -392,5 +622,10 @@ module.exports = {
     requireOwnedItem,
     createItem,
     updateItem,
-    deleteItem
+    deleteItem,
+    createSignup,
+    getSignup,
+    joinSignup,
+    leaveSignup,
+    closeSignup
 };

@@ -1,37 +1,28 @@
 const { EmbedBuilder, SlashCommandBuilder } = require('discord.js');
 const { rollDice } = require('../functions/random');
+const { addDiceRolls } = require('../functions/db');
 const { BRAND_COLOR } = require('../functions/ui');
 const { t } = require('../functions/i18n');
+const { describe } = require('../locales/commands');
 
 module.exports = {
     feature: 'dice',
-    data: new SlashCommandBuilder()
-        .setName('dice')
-        .setDescription('Roll dice.')
-        .setDescriptionLocalization('ko', '주사위를 굴립니다.')
-        .addIntegerOption(option => option
-            .setName('d')
-            .setDescription('Set the number of sides.')
-            .setDescriptionLocalization('ko', '주사위의 최대 눈을 정합니다.')
+    data: describe(new SlashCommandBuilder().setName('dice'), 'dice')
+        .addIntegerOption(option => describe(option.setName('d'), 'dice', 'd')
             .setRequired(true)
             .setMinValue(2)
             .setMaxValue(1_000_000))
-        .addIntegerOption(option => option
-            .setName('times')
-            .setDescription('Set how many dice to roll.')
-            .setDescriptionLocalization('ko', '주사위를 굴릴 횟수를 정합니다.')
+        .addIntegerOption(option => describe(option.setName('times'), 'dice', 'times')
             .setMinValue(1)
             .setMaxValue(10))
-        .addBooleanOption(option => option
-            .setName('ephemeral')
-            .setDescription('Show the result only to you.')
-            .setDescriptionLocalization('ko', '결과를 자신에게만 표시합니다.')),
+        .addBooleanOption(option => describe(option.setName('ephemeral'), 'dice', 'ephemeral')),
 
     async execute(interaction) {
         const sides = interaction.options.getInteger('d', true);
         const count = interaction.options.getInteger('times') || 1;
         const ephemeral = interaction.options.getBoolean('ephemeral') || false;
         const result = rollDice(sides, count);
+        await addDiceRolls(interaction.user.id, count);
 
         const expression = count === 1
             ? `**${result.total}**`

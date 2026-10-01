@@ -1,17 +1,14 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { createGacha } = require('../functions/db');
 const { t } = require('../functions/i18n');
+const { describe } = require('../locales/commands');
 
 module.exports = {
     feature: 'gacha',
-    data: new SlashCommandBuilder()
-        .setName('gacha-create')
-        .setDescription('Create a new gacha.')
-        .setDescriptionLocalization('ko', '새 가챠를 만듭니다.')
-        .addStringOption(option => option
-            .setName('gacha_name')
-            .setDescription('Gacha name')
-            .setDescriptionLocalization('ko', '가챠 이름')
+    data: describe(new SlashCommandBuilder().setName('gacha-create'), 'gachaCreate')
+        .addStringOption(option => describe(
+            option.setName('gacha_name'), 'gachaCreate', 'gachaName'
+        )
             .setMinLength(1)
             .setMaxLength(40)
             .setRequired(true)),
