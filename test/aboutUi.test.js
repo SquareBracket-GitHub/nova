@@ -41,9 +41,10 @@ test('gacha import page documents exact CSV headers and JSON keys', () => {
     assert.match(details, /256KB/);
 });
 
-test('about guide includes the export and random command pages', () => {
+test('about guide includes the export, random, and embed command pages', () => {
     assert.ok(ABOUT_COMMANDS.includes('gacha-export'));
     assert.ok(ABOUT_COMMANDS.includes('random'));
+    assert.ok(ABOUT_COMMANDS.includes('embed'));
 });
 
 test('uptime is formatted in Korean and English', () => {

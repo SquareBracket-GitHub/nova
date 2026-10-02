@@ -150,7 +150,11 @@ const messages = {
   grade_not_owned: 'The grade could not be found or you do not have permission to manage it.',
   item_not_owned: 'The item could not be found or you do not have permission to manage it.',
   invalid_percentage: 'Grade probability must be an integer from 1 to 100.',
-  invalid_color: 'Color must be gray, green, blue, purple, or yellow.',
+  invalid_color: 'Color must be gray, green, blue, purple, yellow, or a six-digit hex code.',
+  invalid_embed_url: 'Links and images must use a valid HTTP or HTTPS URL.',
+  embed_url_requires_title: 'The title option is required when using a title URL.',
+  embed_empty: 'Provide at least one of title, description, author, footer, image, or thumbnail.',
+  embed_too_long: 'The embed cannot contain more than 6,000 text characters.',
   gacha_limit: 'You can create up to {maximum} gachas.',
   grade_limit: 'A gacha can contain up to {maximum} grades.',
   item_limit: 'A grade can contain up to {maximum} items.',
@@ -222,7 +226,7 @@ const about = {
     'gacha-manage': {
       summary: 'Inspect and edit grades, probabilities, colors, and items, or publish a gacha to the channel.',
       usage: '`/gacha-manage`',
-      notes: 'Each gacha supports 25 grades and each grade supports 25 items. Probability left below 100% becomes a no-prize result. After a pull, you can use `Pull 1 again` or `Pull 10 again`.'
+      notes: 'Each gacha supports 25 grades and each grade supports 25 items. Colors accept a preset name or a six-digit hex code such as `#123456`. Probability left below 100% becomes a no-prize result. After a pull, you can use `Pull 1 again` or `Pull 10 again`.'
     },
     'gacha-delete': {
       summary: 'Select and delete one of your gachas.',
@@ -242,7 +246,7 @@ const about = {
         'Treasure,Rare,20,purple,Crown,A shiny crown\n' +
         'Treasure,Common,80,gray,Coin,A common coin\n' +
         '```\n' +
-        'Files must be 256 KB or smaller. Colors are `gray`, `green`, `blue`, `purple`, or `yellow`. Every CSV row must use the same `gacha_name`, and repeated grades must use matching `percentage` and `color` values. Total probability cannot exceed 100%. Invalid files create no data.'
+        'Files must be 256 KB or smaller. Colors are `gray`, `green`, `blue`, `purple`, `yellow`, or a six-digit hex code such as `#123456`; the `#` is optional. Every CSV row must use the same `gacha_name`, and repeated grades must use matching `percentage` and `color` values. Total probability cannot exceed 100%. Invalid files create no data.'
     },
     'gacha-export': {
       summary: 'Download one of your gachas as an import-compatible JSON or CSV file.',
@@ -253,6 +257,11 @@ const about = {
       summary: 'Pick an item, shuffle an order, draw a sample, or divide items into random teams.',
       usage: '`/random pick|order|sample|team items:<comma or new-line separated list> ...`',
       notes: 'Enter 2–40 items. `sample` draws part of the list, and `team` shuffles and distributes the items. Enable `ephemeral` to show the result only to yourself.'
+    },
+    embed: {
+      summary: 'Combine optional properties into a custom embed and post it in the current channel.',
+      usage: '`/embed [title] [description] [color] [url] [image] [thumbnail] [author] [footer] [timestamp]`',
+      notes: 'Provide at least one of `title`, `description`, `author`, `footer`, `image`, or `thumbnail`. Colors accept `gray`, `green`, `blue`, `purple`, `yellow`, or a six-digit hex code such as `#123456`; the `#` is optional.'
     },
     signup: {
       summary: 'Create a public signup panel with join, leave, and close buttons.',
@@ -272,6 +281,18 @@ const about = {
 
 const commands = {
   about: { description: 'Learn about Nova and its commands.' },
+  embed: {
+    description: 'Create and post a custom embed.',
+    title: 'Embed title.',
+    body: 'Embed description with optional Markdown.',
+    color: 'Preset color name or six-digit hex code.',
+    url: 'Link opened when the title is clicked.',
+    image: 'HTTP or HTTPS URL for the large image.',
+    thumbnail: 'HTTP or HTTPS URL for the thumbnail.',
+    author: 'Author name shown above the title.',
+    footer: 'Footer text shown at the bottom.',
+    timestamp: 'Show the current time on the embed.'
+  },
   ping: { description: 'Reply with Pong!' },
   dice: {
     description: 'Roll dice.',

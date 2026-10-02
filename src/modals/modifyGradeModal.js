@@ -16,7 +16,7 @@ module.exports = {
         await updateGrade(gradeId, interaction.user.id, {
             name: interaction.fields.getTextInputValue('grade_name').trim(),
             percentage: parsePercentage(interaction.fields.getTextInputValue('grade_percentage').trim()),
-            color: interaction.fields.getTextInputValue('grade_color').trim().toLowerCase()
+            color: interaction.fields.getTextInputValue('grade_color').trim()
         });
         await interaction.reply({ content: t(interaction, 'grade_modified'), ephemeral: true });
     }

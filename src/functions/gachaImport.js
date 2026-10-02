@@ -1,4 +1,4 @@
-const ALLOWED_COLORS = new Set(['gray', 'green', 'blue', 'purple', 'yellow']);
+const { normalizeGradeColor } = require('./colors');
 
 class ImportValidationError extends Error {}
 
@@ -40,8 +40,8 @@ function normalizeDefinition(input) {
             throw new ImportValidationError(`${label} percentage must be an integer from 1 to 100.`);
         }
         totalPercentage += percentage;
-        const color = String(rawGrade?.color ?? '').trim().toLowerCase();
-        if (!ALLOWED_COLORS.has(color)) throw new ImportValidationError(`${label} has an invalid color.`);
+        const color = normalizeGradeColor(rawGrade?.color);
+        if (!color) throw new ImportValidationError(`${label} has an invalid color.`);
 
         const rawItems = rawGrade?.items ?? [];
         if (!Array.isArray(rawItems)) throw new ImportValidationError(`${label} items must be an array.`);
@@ -121,14 +121,17 @@ function parseCsv(text) {
     for (const record of records) {
         const key = record.grade_name.trim().toLocaleLowerCase();
         if (!key) throw new ImportValidationError('Every CSV row must include grade_name.');
+        const percentage = record.percentage.trim();
+        const color = normalizeGradeColor(record.color);
+        if (!color) throw new ImportValidationError(`Grade ${record.grade_name.trim()} has an invalid color.`);
         const existing = gradeMap.get(key);
-        if (existing && (existing.percentage !== record.percentage.trim() || existing.color !== record.color.trim().toLowerCase())) {
+        if (existing && (existing.percentage !== percentage || existing.color !== color)) {
             throw new ImportValidationError(`Grade settings are inconsistent: ${record.grade_name.trim()}`);
         }
         const grade = existing || {
             name: record.grade_name,
-            percentage: record.percentage.trim(),
-            color: record.color,
+            percentage,
+            color,
             items: []
         };
         if (record.item_name.trim()) {

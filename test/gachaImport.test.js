@@ -23,6 +23,23 @@ test('parses quoted CSV fields and groups grades', () => {
     assert.equal(result.grades[1].items[1].description, 'Hot\nand tasty');
 });
 
+test('normalizes hex colors from JSON and CSV imports', () => {
+    const json = parseGachaImport('sample.json', JSON.stringify({
+        name: 'Hex JSON',
+        grades: [{ name: 'Rare', percentage: 100, color: 'ffb347', items: [] }]
+    }));
+    assert.equal(json.grades[0].color, '#FFB347');
+
+    const csv = [
+        'gacha_name,grade_name,percentage,color,item_name,item_description',
+        'Hex CSV,Rare,100,#ffb347,Gem,',
+        'Hex CSV,Rare,100,FFB347,Crown,'
+    ].join('\n');
+    const parsedCsv = parseGachaImport('sample.csv', csv);
+    assert.equal(parsedCsv.grades[0].color, '#FFB347');
+    assert.equal(parsedCsv.grades[0].items.length, 2);
+});
+
 test('rejects imports whose probability exceeds 100 percent', () => {
     assert.throws(() => parseGachaImport('sample.json', JSON.stringify({
         name: 'Broken',

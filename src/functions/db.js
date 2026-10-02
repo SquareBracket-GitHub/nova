@@ -1,9 +1,9 @@
 const mysql = require('mysql2/promise');
 const { UserFacingError } = require('./errors');
 const { getDatabaseConfig } = require('./config');
+const { normalizeGradeColor } = require('./colors');
 
 const MAX_COMPONENT_OPTIONS = 25;
-const ALLOWED_COLORS = new Set(['gray', 'green', 'blue', 'purple', 'yellow']);
 const SUPPORTED_LOCALES = new Set(['ko', 'en']);
 const FEATURE_KEYS = ['dice', 'fortune', 'gacha', 'emoji'];
 
@@ -373,14 +373,14 @@ function validateGrade(percentage, color) {
     if (!Number.isInteger(percentage) || percentage < 1 || percentage > 100) {
         throw new UserFacingError('invalid_percentage');
     }
-    if (!ALLOWED_COLORS.has(color)) {
-        throw new UserFacingError('invalid_color');
-    }
+    const normalizedColor = normalizeGradeColor(color);
+    if (!normalizedColor) throw new UserFacingError('invalid_color');
+    return normalizedColor;
 }
 
 async function createGrade(gachaId, ownerId, { name, percentage, color }) {
     validateName(name, 'grade_label');
-    validateGrade(percentage, color);
+    const normalizedColor = validateGrade(percentage, color);
     return withTransaction(async connection => {
         await requireOwnedGacha(gachaId, ownerId, connection);
         const [grades] = await connection.execute(
@@ -395,7 +395,7 @@ async function createGrade(gachaId, ownerId, { name, percentage, color }) {
         try {
             await connection.execute(
                 'INSERT INTO grades (gacha_id, grade_name, percentage, color) VALUES (?, ?, ?, ?)',
-                [gachaId, name, percentage, color]
+                [gachaId, name, percentage, normalizedColor]
             );
         } catch (error) {
             if (error.code === 'ER_DUP_ENTRY') throw new UserFacingError('duplicate_grade');
@@ -406,7 +406,7 @@ async function createGrade(gachaId, ownerId, { name, percentage, color }) {
 
 async function updateGrade(gradeId, ownerId, { name, percentage, color }) {
     validateName(name, 'grade_label');
-    validateGrade(percentage, color);
+    const normalizedColor = validateGrade(percentage, color);
     return withTransaction(async connection => {
         const grade = await requireOwnedGrade(gradeId, ownerId, connection);
         const [grades] = await connection.execute(
@@ -421,7 +421,7 @@ async function updateGrade(gradeId, ownerId, { name, percentage, color }) {
         try {
             await connection.execute(
                 'UPDATE grades SET grade_name = ?, percentage = ?, color = ? WHERE id = ?',
-                [name, percentage, color, gradeId]
+                [name, percentage, normalizedColor, gradeId]
             );
         } catch (error) {
             if (error.code === 'ER_DUP_ENTRY') throw new UserFacingError('duplicate_grade');

@@ -150,7 +150,11 @@ const messages = {
   grade_not_owned: '해당 등급을 찾을 수 없거나 관리 권한이 없습니다.',
   item_not_owned: '해당 아이템을 찾을 수 없거나 관리 권한이 없습니다.',
   invalid_percentage: '등급 확률은 1부터 100 사이의 정수여야 합니다.',
-  invalid_color: '색상은 gray, green, blue, purple, yellow 중 하나여야 합니다.',
+  invalid_color: '색상은 gray, green, blue, purple, yellow 또는 6자리 HEX 코드여야 합니다.',
+  invalid_embed_url: '링크와 이미지에는 올바른 HTTP 또는 HTTPS URL을 입력해야 합니다.',
+  embed_url_requires_title: '제목 링크를 사용하려면 title도 입력해야 합니다.',
+  embed_empty: 'title, description, author, footer, image, thumbnail 중 하나 이상을 입력해야 합니다.',
+  embed_too_long: '임베드의 전체 텍스트는 6,000자를 넘을 수 없습니다.',
   gacha_limit: '가챠는 사용자당 최대 {maximum}개까지 만들 수 있습니다.',
   grade_limit: '등급은 가챠당 최대 {maximum}개까지 만들 수 있습니다.',
   item_limit: '아이템은 등급당 최대 {maximum}개까지 만들 수 있습니다.',
@@ -222,7 +226,7 @@ const about = {
     'gacha-manage': {
       summary: '내 가챠의 등급·확률·색상·아이템을 확인하고 편집하거나 채널에 공개합니다.',
       usage: '`/gacha-manage`',
-      notes: '가챠당 등급 25개, 등급당 아이템 25개까지 지원합니다. 등급 확률 합계가 100%보다 작으면 남은 확률은 꽝입니다. 가챠를 돌린 후 `다시 1회`, `다시 10회`를 사용할 수 있습니다.'
+      notes: '가챠당 등급 25개, 등급당 아이템 25개까지 지원합니다. 색상은 `gray`, `green`, `blue`, `purple`, `yellow` 또는 `#123456` 같은 6자리 HEX 코드를 사용할 수 있습니다. 등급 확률 합계가 100%보다 작으면 남은 확률은 꽝입니다. 가챠를 돌린 후 `다시 1회`, `다시 10회`를 사용할 수 있습니다.'
     },
     'gacha-delete': {
       summary: '내 가챠 하나를 선택해 삭제합니다.',
@@ -242,7 +246,7 @@ const about = {
         '보물 상자,희귀,20,purple,왕관,빛나는 왕관\n' +
         '보물 상자,일반,80,gray,동전,평범한 동전\n' +
         '```\n' +
-        '파일은 256KB 이하여야 하며 색상은 `gray`, `green`, `blue`, `purple`, `yellow` 중 하나입니다. CSV의 모든 행은 같은 `gacha_name`을 사용하고, 같은 등급의 `percentage`와 `color`도 일치해야 합니다. 전체 확률은 100%를 넘을 수 없으며 오류가 있으면 아무 데이터도 생성되지 않습니다.'
+        '파일은 256KB 이하여야 하며 색상은 `gray`, `green`, `blue`, `purple`, `yellow` 또는 `#123456` 같은 6자리 HEX 코드입니다. `#`은 생략할 수 있습니다. CSV의 모든 행은 같은 `gacha_name`을 사용하고, 같은 등급의 `percentage`와 `color`도 일치해야 합니다. 전체 확률은 100%를 넘을 수 없으며 오류가 있으면 아무 데이터도 생성되지 않습니다.'
     },
     'gacha-export': {
       summary: '내 가챠를 `/gacha-import`와 호환되는 JSON 또는 CSV 파일로 내려받습니다.',
@@ -253,6 +257,11 @@ const about = {
       summary: '목록에서 하나를 고르거나, 순서를 섞거나, 여러 개를 추첨하거나, 무작위 팀으로 나눕니다.',
       usage: '`/random pick|order|sample|team items:<쉼표 또는 줄바꿈으로 구분한 목록> ...`',
       notes: '항목은 2~40개를 입력할 수 있습니다. `sample`은 추첨으로 목록 중 일부를 뽑고, `team`은 항목을 섞어 배분합니다. `ephemeral`을 활성화하면 결과가 자신에게만 표시됩니다.'
+    },
+    embed: {
+      summary: '원하는 속성을 조합해 현재 채널에 사용자 지정 임베드를 게시합니다.',
+      usage: '`/embed [title] [description] [color] [url] [image] [thumbnail] [author] [footer] [timestamp]`',
+      notes: '`title`, `description`, `author`, `footer`, `image`, `thumbnail` 중 하나 이상이 필요합니다. 색상은 `gray`, `green`, `blue`, `purple`, `yellow` 또는 `#123456` 같은 6자리 HEX 코드를 지원하며 `#`은 생략할 수 있습니다.'
     },
     signup: {
       summary: '참가·참가 취소·모집 마감 버튼이 있는 공개 모집 패널을 만듭니다.',

@@ -1,7 +1,7 @@
 const { randomInt } = require('crypto');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const { addGachaPulls, getGacha, listGrades, listItems } = require('../functions/db');
-const { BRAND_COLOR, GRADE_COLORS } = require('../functions/ui');
+const { BRAND_COLOR, resolveGradeColor } = require('../functions/ui');
 const { UserFacingError } = require('../functions/errors');
 const { t } = require('../functions/i18n');
 
@@ -59,7 +59,7 @@ module.exports = {
             embed = new EmbedBuilder()
                 .setAuthor({ name: t(interaction, 'result_author', { username: interaction.user.username }), iconURL: interaction.user.displayAvatarURL() })
                 .setTitle(result.blank ? t(interaction, 'blank') : `${result.item} (${result.grade})`)
-                .setColor(result.blank ? BRAND_COLOR : GRADE_COLORS[result.color]);
+                .setColor(result.blank ? BRAND_COLOR : resolveGradeColor(result.color));
             if (result.blank) embed.setDescription(t(interaction, 'blank_description'));
             else if (result.description) embed.setDescription(result.description);
         } else {

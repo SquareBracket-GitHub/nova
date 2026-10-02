@@ -4,7 +4,7 @@ const {
 const { localeOf } = require('./i18n');
 const { BRAND_COLOR } = require('./ui');
 
-const RELEASE_DATE = '2026-10-01';
+const RELEASE_DATE = '2026-10-02';
 const ABOUT_COMMANDS = [
     'about',
     'ping',
@@ -18,6 +18,7 @@ const ABOUT_COMMANDS = [
     'gacha-import',
     'gacha-export',
     'random',
+    'embed',
     'signup',
     'settings'
 ];

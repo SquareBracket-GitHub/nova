@@ -1,0 +1,2 @@
+ALTER TABLE grades
+    MODIFY COLUMN color VARCHAR(7) NOT NULL;

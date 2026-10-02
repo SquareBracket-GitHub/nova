@@ -1,6 +1,6 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const { listItems, requireOwnedGrade } = require('../functions/db');
-const { GRADE_COLORS, truncate } = require('../functions/ui');
+const { resolveGradeColor, truncate } = require('../functions/ui');
 const { t } = require('../functions/i18n');
 
 module.exports = {
@@ -17,7 +17,7 @@ module.exports = {
 
         const embed = new EmbedBuilder()
             .setTitle(`${grade.grade_name} (${grade.percentage}%)`)
-            .setColor(GRADE_COLORS[grade.color])
+            .setColor(resolveGradeColor(grade.color))
             .setDescription(truncate(description, 4096));
 
         const editRow = new ActionRowBuilder().addComponents(
