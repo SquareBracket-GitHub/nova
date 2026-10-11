@@ -12,11 +12,9 @@ function todayInKorea() {
 }
 
 function fortuneMessage(interaction, score) {
-    if (score <= 20) return t(interaction, 'fortune_1');
-    if (score <= 40) return t(interaction, 'fortune_2');
-    if (score <= 60) return t(interaction, 'fortune_3');
-    if (score <= 80) return t(interaction, 'fortune_4');
-    return t(interaction, 'fortune_5');
+    const upperBound = [1, 2, 9, 14, 19, 29, 39, 44, 49, 59, 66, 67, 69, 74, 79, 84, 89, 93, 98, 99, 100]
+        .find(bound => score <= bound);
+    return t(interaction, `fortune_${upperBound}`);
 }
 
 function checkedAtInKorea(interaction, timestamp) {
