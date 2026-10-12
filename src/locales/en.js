@@ -45,7 +45,7 @@ const messages = {
   fortune_84: 'Wishing you success.',
   fortune_89: 'How about making a bold move for a decisive victory!',
   fortune_93: 'Today is perfect for giving it your all. Show them who you are.',
-  fortune_98: 'The goddess of victory is smiling on you! Today is your day!',
+  fortune_98: 'The goddess of fortune is smiling on you! Today is your day!',
   fortune_99: '"He loved Big Brother."\n- 1984',
   fortune_100: '"I looked up and saw the mountaintop already wrapped in rays of starlight.\nIt was the star that guides people to walk their paths rightly."\n- The Divine Comedy',
   me_author: "{username}'s NOVA user level",
